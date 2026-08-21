@@ -1,0 +1,16 @@
+# Local credentials and tokens
+.env
+.env.*
+config/perf-env.local.ps1
+
+# Generated datasets and database snapshots
+seed/generated/
+seed/snapshots/
+seed/local/
+
+# Load-test output
+results/
+*.jtl
+summary*.json
+report*.html
+*.log

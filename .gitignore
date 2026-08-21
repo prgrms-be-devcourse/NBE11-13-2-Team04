@@ -4,4 +4,9 @@ build/
 *.iml
 .DS_Store
 
+# Local environment and assistant workspace files
+.env
+.env.*
+.local-openai-chat/
+
 src/main/resources/application-secret.yml

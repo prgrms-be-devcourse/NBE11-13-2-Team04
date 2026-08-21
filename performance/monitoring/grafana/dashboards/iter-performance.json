@@ -1,0 +1,190 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Iter k6 부하와 Spring/JVM/HikariCP 지표를 함께 확인하는 로컬 성능 대시보드",
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "iter-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
+      "targets": [
+        { "editorMode": "code", "expr": "sum(rate(k6_http_reqs_total{testid=~\"$testid\"}[$__rate_interval]))", "legendFormat": "RPS", "range": true, "refId": "A" }
+      ],
+      "title": "k6 요청 처리량",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "iter-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
+      "targets": [
+        { "editorMode": "code", "expr": "1000 * histogram_quantile(0.95, sum(rate(k6_http_req_duration_seconds{testid=~\"$testid\"}[$__rate_interval])))", "legendFormat": "p95", "range": true, "refId": "A" }
+      ],
+      "title": "k6 응답시간 p95",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "iter-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
+      "targets": [
+        { "editorMode": "code", "expr": "1000 * histogram_quantile(0.99, sum(rate(k6_http_req_duration_seconds{testid=~\"$testid\"}[$__rate_interval])))", "legendFormat": "p99", "range": true, "refId": "A" }
+      ],
+      "title": "k6 응답시간 p99",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "iter-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps", "color": { "fixedColor": "red", "mode": "fixed" } }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "id": 4,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
+      "targets": [
+        { "editorMode": "code", "expr": "sum(rate(k6_http_reqs_total{testid=~\"$testid\", expected_response=\"false\"}[$__rate_interval]))", "legendFormat": "실패 RPS", "range": true, "refId": "A" }
+      ],
+      "title": "k6 실패 요청",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "iter-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "id": 5,
+      "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "right", "showLegend": true, "width": 420 }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "editorMode": "code", "expr": "topk(10, sum by (name) (rate(k6_http_reqs_total{testid=~\"$testid\"}[$__rate_interval])))", "legendFormat": "{{name}}", "range": true, "refId": "A" }
+      ],
+      "title": "k6 API별 RPS 상위 10개",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "iter-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "id": 6,
+      "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "right", "showLegend": true, "width": 420 }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "editorMode": "code", "expr": "topk(10, 1000 * histogram_quantile(0.95, sum by (name) (rate(k6_http_req_duration_seconds{testid=~\"$testid\"}[$__rate_interval]))))", "legendFormat": "{{name}} p95", "range": true, "refId": "A" }
+      ],
+      "title": "k6 API별 응답시간 p95 상위 10개",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "iter-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 13 },
+      "id": 7,
+      "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "editorMode": "code", "expr": "sum by (uri, status) (rate(http_server_requests_seconds_count{application=\"iter\"}[$__rate_interval]))", "legendFormat": "{{status}} {{uri}}", "range": true, "refId": "A" }
+      ],
+      "title": "Spring API별 RPS",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "iter-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 13 },
+      "id": 8,
+      "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "editorMode": "code", "expr": "1000 * sum by (uri) (rate(http_server_requests_seconds_sum{application=\"iter\"}[$__rate_interval])) / clamp_min(sum by (uri) (rate(http_server_requests_seconds_count{application=\"iter\"}[$__rate_interval])), 0.000001)", "legendFormat": "{{uri}}", "range": true, "refId": "A" }
+      ],
+      "title": "Spring API별 평균 응답시간",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "iter-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 21 },
+      "id": 9,
+      "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "editorMode": "code", "expr": "process_cpu_usage{application=\"iter\"}", "legendFormat": "Java process", "range": true, "refId": "A" },
+        { "editorMode": "code", "expr": "system_cpu_usage{application=\"iter\"}", "legendFormat": "System", "range": true, "refId": "B" }
+      ],
+      "title": "Spring CPU 사용률",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "iter-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 21 },
+      "id": 10,
+      "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "editorMode": "code", "expr": "sum(jvm_memory_used_bytes{application=\"iter\", area=\"heap\"})", "legendFormat": "used", "range": true, "refId": "A" },
+        { "editorMode": "code", "expr": "sum(jvm_memory_max_bytes{application=\"iter\", area=\"heap\"})", "legendFormat": "max", "range": true, "refId": "B" }
+      ],
+      "title": "JVM Heap",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "iter-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 21 },
+      "id": 11,
+      "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "editorMode": "code", "expr": "hikaricp_connections_active{application=\"iter\"}", "legendFormat": "active", "range": true, "refId": "A" },
+        { "editorMode": "code", "expr": "hikaricp_connections_idle{application=\"iter\"}", "legendFormat": "idle", "range": true, "refId": "B" },
+        { "editorMode": "code", "expr": "hikaricp_connections_pending{application=\"iter\"}", "legendFormat": "pending", "range": true, "refId": "C" },
+        { "editorMode": "code", "expr": "hikaricp_connections_max{application=\"iter\"}", "legendFormat": "max", "range": true, "refId": "D" }
+      ],
+      "title": "HikariCP 커넥션",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 41,
+  "tags": ["iter", "k6", "spring", "performance"],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": { "text": "All", "value": "$__all" },
+        "datasource": { "type": "prometheus", "uid": "iter-prometheus" },
+        "definition": "label_values(k6_http_reqs_total, testid)",
+        "includeAll": true,
+        "label": "Test ID",
+        "name": "testid",
+        "options": [],
+        "query": { "query": "label_values(k6_http_reqs_total, testid)", "refId": "PrometheusVariableQueryEditor-VariableQuery" },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": { "from": "now-15m", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Iter Performance Overview",
+  "uid": "iter-performance-overview",
+  "version": 2,
+  "weekStart": ""
+}

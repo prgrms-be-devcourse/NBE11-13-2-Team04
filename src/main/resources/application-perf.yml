@@ -1,0 +1,59 @@
+spring:
+  config:
+    activate:
+      on-profile: perf
+  datasource:
+    url: ${PERF_DB_URL}
+    username: ${PERF_DB_USERNAME}
+    password: ${PERF_DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      pool-name: iter-perf-pool
+  jpa:
+    hibernate:
+      # 최초 빈 DB 준비 시에만 PERF_DDL_AUTO=update를 사용하고,
+      # 실제 측정에서는 기본값 validate로 스키마 변경을 막습니다.
+      ddl-auto: ${PERF_DDL_AUTO:validate}
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+  # 카카오 OAuth는 이번 부하테스트 범위에서 제외합니다.
+  # 실제 키 없이도 perf 프로필이 기동되도록 더미 값으로 고정합니다.
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: perf-kakao-disabled
+            client-secret: perf-kakao-disabled
+
+logging:
+  level:
+    com.example.iter: info
+    org.hibernate.SQL: warn
+    org.hibernate.orm.jdbc.bind: warn
+
+management:
+  server:
+    address: ${PERF_MANAGEMENT_ADDRESS:127.0.0.1}
+    port: ${PERF_MANAGEMENT_PORT:9091}
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  endpoint:
+    health:
+      show-details: never
+
+rental:
+  expiration:
+    scheduler:
+      enabled: false
+
+# 로컬 HTTP 부하테스트에서 k6가 Refresh Token Cookie를 저장하고 재전송할 수 있게 합니다.
+# 운영의 __Secure- Cookie 설정은 application.yaml에 그대로 유지됩니다.
+auth:
+  refresh-cookie:
+    name: iter-perf-refresh
+    secure: false
