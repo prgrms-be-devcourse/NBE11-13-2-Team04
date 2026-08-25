@@ -1,16 +1,88 @@
 spring:
   application:
     name: iter
-  config:
-    import: optional:file:./application-secret.yml
+  profiles:
+    default: local
   jpa:
     hibernate:
-      ddl-auto: update   # 팀 컨벤션 확정 전 임시값. 운영/공유 DB에서는 validate 또는 none 권장
-    show-sql: true
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: true
     open-in-view: false
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - profile_nickname
+              - account_email
+            provider: kakao
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
+jwt:
+  issuer: iter
+  audience: iter-api
+  secret-key: ${JWT_SECRET_KEY}
+  access-token-validity: 15m
+  refresh-token-validity: 14d
+
+toss:
+  client-key: ${TOSS_CLIENT_KEY:test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq}
+  secret-key: ${TOSS_SECRET_KEY:test_sk_zXLkKEypNArWmo50nX3lmeaxYG5R}
+
+notification:
+  mail-from: ${MAIL_USERNAME:noreply@iter.example.com}
+  # Redis Pub/Sub 전환 시 SseEmitterRegistry 구현체만 교체하면 되도록 채널 키 규칙만 미리 정의.
+  # (지금은 단일 인스턴스라 인메모리로 구독을 관리하고, Redis 연동은 별도 작업으로 진행 예정)
+  redis-channel-prefix: "notification:user:"
+
+auth:
+  refresh-cookie:
+    name: __Secure-iter-refresh
+    secure: true
+    http-only: true
+    same-site: Lax
+    path: /api/v1/auth
+    max-age: 14d
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  storage:
+    s3:
+      bucket: ${S3_BUCKET:iter-local}
+      region: ${AWS_REGION:ap-northeast-2}
+      public-base-url: ${S3_PUBLIC_BASE_URL:}
+      key-prefix: ${S3_KEY_PREFIX:equipment}
+      presigned-url-validity: ${S3_PRESIGNED_URL_VALIDITY:5m}
+  oauth2:
+    frontend-callback-uri: ${OAUTH2_FRONTEND_CALLBACK_URI:http://localhost:5173/oauth2/callback}
+    exchange-token-validity: 1m
+    action-token-validity: 5m
+    pending-token-retention: 1d
 
 springdoc:
   swagger-ui:
@@ -20,5 +92,7 @@ springdoc:
     path: /v3/api-docs
 
 logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [requestId=%X{requestId:-none}] %logger{36} - %msg%n"
   level:
-    com.iter: debug
+    com.example.iter: debug

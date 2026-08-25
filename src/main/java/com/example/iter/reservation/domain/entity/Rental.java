@@ -6,6 +6,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 // ERD RENTAL 엔티티
 // equipmentId/renterId는 각각 device/auth 도메인 PK를 값으로만 참조 (도메인 간 결합 최소화).
@@ -15,7 +16,27 @@ import java.time.LocalDate;
 // 기획서 5-1/8-1(Day5)에 명시된 "JPA 낙관적 락(@Version)" 동시성 제어를 구현하려면 반드시 필요한 컬럼이라 추가해두었다.
 // -> ERD 원본(drawSQL) 업데이트가 필요하니 팀 공유 바랍니다.
 @Entity
-@Table(name = "rental")
+@Table(
+        name = "rental",
+        indexes = {
+                @Index(
+                        name = "idx_rental_renter_created_id",
+                        columnList = "renter_id, created_at DESC, id DESC"
+                ),
+                @Index(
+                        name = "idx_rental_equipment_created_id",
+                        columnList = "equipment_id, created_at DESC, id DESC"
+                ),
+                @Index(
+                        name = "idx_rental_equipment_period",
+                        columnList = "equipment_id, start_date, end_date, id, status"
+                ),
+                @Index(
+                        name = "idx_rental_status_created",
+                        columnList = "status, created_at"
+                )
+        }
+)
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -74,6 +95,12 @@ public class Rental extends BaseTimeEntity {
     @Column(name = "request_message", columnDefinition = "TEXT")
     private String requestMessage;
 
+    @Column(name = "reject_reason", length = 200)
+    private String rejectReason;
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
     @Enumerated(EnumType.STRING)
     @Builder.Default
     @Column(nullable = false, length = 20)
@@ -87,5 +114,25 @@ public class Rental extends BaseTimeEntity {
 
     public void changeStatus(RentalStatus status) {
         this.status = status;
+    }
+
+    public void approve() {
+        this.status = RentalStatus.APPROVED;
+        this.approvedAt = LocalDateTime.now();
+    }
+
+    public void reject(String reason) {
+        this.status = RentalStatus.REJECTED;
+        this.rejectReason = reason;
+    }
+
+    // 정상 반납으로 거래를 완료합니다.
+    public void completeReturn() {
+        this.status = RentalStatus.COMPLETED;
+    }
+
+    // 비정상 반납으로 거래를 분쟁 상태로 변경합니다.
+    public void openReturnDispute() {
+        this.status = RentalStatus.DISPUTED;
     }
 }

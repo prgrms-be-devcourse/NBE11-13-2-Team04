@@ -12,7 +12,27 @@ import java.time.LocalDateTime;
 // [주의] 구체적인 필드 목록은 ERD 변경사항에 target_type/status enum만 명시되어 있어
 // DISPUTE 엔티티와 동일한 형태로 유추해 작성했습니다. 실제 컬럼 구성은 팀 확인 후 조정해주세요.
 @Entity
-@Table(name = "report")
+@Table(
+        name = "report",
+        indexes = {
+                @Index(
+                        name = "idx_report_created_id",
+                        columnList = "created_at DESC, id DESC"
+                ),
+                @Index(
+                        name = "idx_report_status_target_created_id",
+                        columnList = "status, target_type, created_at DESC, id DESC"
+                ),
+                @Index(
+                        name = "idx_report_reporter_created_id",
+                        columnList = "reporter_id, created_at DESC, id DESC"
+                ),
+                @Index(
+                        name = "idx_report_active_target",
+                        columnList = "reporter_id, target_type, target_id, status"
+                )
+        }
+)
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -49,4 +69,22 @@ public class Report extends BaseTimeEntity {
 
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
+
+
+    // 관리자가 신고 상태와 처리 메모를 변경합니다. 해결 또는 기각 상태에서는 처리 완료 시각을 저장합니다.
+    public void changeStatusByAdmin(
+            ReportStatus status,
+            String adminMemo,
+            LocalDateTime processedAt
+    ) {
+        this.status = status;
+        this.adminMemo = adminMemo;
+
+        if (status == ReportStatus.RESOLVED || status == ReportStatus.REJECTED) {
+            this.resolvedAt = processedAt;
+            return;
+        }
+
+        this.resolvedAt = null;
+    }
 }

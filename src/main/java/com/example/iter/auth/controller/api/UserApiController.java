@@ -1,29 +1,92 @@
 package com.example.iter.auth.controller.api;
 
+import com.example.iter.auth.controller.api.spec.UserApiSpec;
+import com.example.iter.auth.dto.request.AddressUpdateRequest;
+import com.example.iter.auth.dto.request.PasswordChangeRequest;
+import com.example.iter.auth.dto.request.UserDeleteRequest;
+import com.example.iter.auth.dto.request.UserUpdateRequest;
+import com.example.iter.auth.dto.response.AddressResponse;
 import com.example.iter.auth.dto.response.UserResponse;
-import com.example.iter.common.response.ApiResponse;
+import com.example.iter.auth.service.UserAccountService;
+import com.example.iter.auth.service.UserAddressService;
+import com.example.iter.auth.support.RefreshTokenCookieManager;
 import com.example.iter.common.security.CustomUserDetails;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-// 마이페이지 API — 역할 분담 문서 기준 곽성현 담당
-// 지금은 JWT 인증 체인이 실제로 동작하는지 확인용 "내 정보 조회"만 구현되어 있다.
-// TODO: 내 정보 수정, 비밀번호 변경, 회원 탈퇴, 기본 배송지 조회/수정
-@Tag(name = "User", description = "마이페이지 API")
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
-public class UserApiController {
+public class UserApiController implements UserApiSpec {
 
-    @Operation(summary = "내 정보 조회", security = @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "JWT"))
+    private final UserAddressService userAddressService;
+    private final UserAccountService userAccountService;
+    private final RefreshTokenCookieManager refreshTokenCookieManager;
+
+    @Override
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<UserResponse>> getMe(@AuthenticationPrincipal CustomUserDetails principal) {
-        return ResponseEntity.ok(ApiResponse.success(UserResponse.from(principal.getUser())));
+    public ResponseEntity<UserResponse> getMe(@AuthenticationPrincipal CustomUserDetails principal) {
+        return ResponseEntity.ok(userAccountService.getMyProfile(principal.getUser().getId()));
+    }
+
+    @Override
+    @PatchMapping("/me")
+    public ResponseEntity<UserResponse> updateMe(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @Valid @RequestBody UserUpdateRequest request
+    ) {
+        return ResponseEntity.ok(
+                userAccountService.updateMyProfile(principal.getUser().getId(), request));
+    }
+
+    @Override
+    @PatchMapping("/me/password")
+    public ResponseEntity<Void> changePassword(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @Valid @RequestBody PasswordChangeRequest request
+    ) {
+        userAccountService.changePassword(principal.getUser().getId(), request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Override
+    @GetMapping("/me/address")
+    public ResponseEntity<AddressResponse> getDefaultAddress(
+            @AuthenticationPrincipal CustomUserDetails principal
+    ) {
+        return ResponseEntity.ok(userAddressService.getDefaultAddress(principal.getUser().getId()));
+    }
+
+    @Override
+    @PutMapping("/me/address")
+    public ResponseEntity<AddressResponse> updateDefaultAddress(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @Valid @RequestBody AddressUpdateRequest request
+    ) {
+        return ResponseEntity.ok(
+                userAddressService.updateDefaultAddress(principal.getUser().getId(), request)
+        );
+    }
+
+    @Override
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> withdraw(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @Valid @RequestBody(required = false) UserDeleteRequest request
+    ) {
+        userAccountService.withdraw(principal.getUser().getId(), request);
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookieManager.delete().toString())
+                .build();
     }
 }

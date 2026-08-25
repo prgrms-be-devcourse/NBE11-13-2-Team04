@@ -10,7 +10,23 @@ import java.time.LocalDate;
 // ERD EQUIPMENT 엔티티
 // ownerId는 auth 도메인 User의 PK를 값으로만 참조한다 (도메인 간 JPA 연관관계를 걸지 않음 — AdminAction과 동일한 이유).
 @Entity
-@Table(name = "equipment")
+@Table(
+        name = "equipment",
+        indexes = {
+                @Index(
+                        name = "idx_equipment_created_id",
+                        columnList = "created_at DESC, id DESC"
+                ),
+                @Index(
+                        name = "idx_equipment_status_created_id",
+                        columnList = "status, created_at DESC, id DESC"
+                ),
+                @Index(
+                        name = "idx_equipment_owner_created_id",
+                        columnList = "owner_id, created_at DESC, id DESC"
+                )
+        }
+)
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -24,8 +40,9 @@ public class Equipment extends BaseTimeEntity {
     @Column(name = "owner_id", nullable = false)
     private Long ownerId;
 
-    @Column(nullable = false, length = 50)
-    private String category;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private EquipmentCategory category;
 
     @Column(nullable = false, length = 100)
     private String name;
@@ -61,7 +78,33 @@ public class Equipment extends BaseTimeEntity {
         return this.ownerId.equals(userId);
     }
 
+    public boolean isActive() {
+        return this.status == EquipmentStatus.ACTIVE;
+    }
+
     public void changeStatus(EquipmentStatus status) {
         this.status = status;
+    }
+
+    public void update(
+            String name,
+            String description,
+            BigDecimal dailyPrice,
+            LocalDate availableFrom,
+            LocalDate availableTo,
+            ProductConditionType productCondition,
+            String conditionDetail
+    ) {
+        this.name = name;
+        this.description = description;
+        this.dailyPrice = dailyPrice;
+        this.availableFrom = availableFrom;
+        this.availableTo = availableTo;
+        this.productCondition = productCondition;
+        this.conditionDetail = conditionDetail;
+    }
+
+    public void delete() {
+        this.status = EquipmentStatus.DELETED;
     }
 }
